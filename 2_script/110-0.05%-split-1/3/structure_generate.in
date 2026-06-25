@@ -1,0 +1,46 @@
+# ------------------- LOOP DEFINE ------------------------------
+variable        nsteps equal 1
+label           loop_start
+variable        i loop ${nsteps}
+# ------------------- INITIALIZE -------------------------------
+units           metal
+dimension       3
+boundary        p p p       
+atom_style      atomic
+
+# ------------------- ATOM DEFINE ------------------------------
+read_data       ../lmp_input/3/input.lmp
+
+# ------------------- SETTINGS ---------------------------------
+variable        latparam equal 2.834
+variable        b equal ${latparam}/sqrt(2)
+
+variable        tmp0 equal "(ylo+yhi)/2"
+variable        ymid equal ${tmp0}-${b}/2
+
+variable        up equal ${ymid}+${b}*(0.5)
+variable        lo equal ${ymid}-${b}*(0.5)
+
+region        	upper block INF INF ${up} INF INF INF units box
+region        	lower block INF INF INF ${lo} INF INF units box
+
+group		    fe type 2
+
+group        	top_tmp region upper
+group        	bot_tmp region lower
+
+group           top subtract top_tmp fe
+group           bot subtract bot_tmp fe
+
+variable        disp equal ${i}*${b}
+
+displace_atoms   top move 0 ${disp} 0 units box
+displace_atoms   bot move 0 -${disp} 0 units box
+
+variable        name equal ${i}
+shell mkdir ${name}
+write_data      ${name}/input.lmp
+
+clear
+next            i
+jump            SELF loop_start
